@@ -6,6 +6,7 @@ import { signIn, getSession } from 'next-auth/react';
 import { useAuthStore } from '@/lib/store';
 import styles from './style.module.scss';
 import Image from 'next/image';
+import { saveAuthPayload } from '@/lib/auth';
 
 const { Title, Text } = Typography;
 
@@ -39,8 +40,20 @@ export default function LoginPage() {
       const user = session?.user || { username };
       const token = (session as any)?.accessToken || null;
 
+      // try to get the full payload returned by backend inside session.user (some setups put data there)
+      const payload =
+        (session as any)?.raw?.data?.data ||
+        (session as any)?.user?.payload ||
+        null;
+
+      // if payload not present, try to construct from user+token
+      const finalPayload = payload || { user, token };
+
+      // save to cookie + set axios auth header
+      saveAuthPayload(finalPayload);
+
       // update local store for compatibility (optional)
-      login({ user, token });
+      login({ user: finalPayload.user, token: finalPayload.token });
 
       router.push('/dashboard');
     } catch (err) {

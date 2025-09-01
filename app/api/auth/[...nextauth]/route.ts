@@ -12,7 +12,7 @@ const authOptions = {
       async authorize(credentials) {
         if (!credentials) return null;
         try {
-          const res = await fetch('http://localhost:8000/api/v1/login', {
+          const res = await fetch('http://localhost:8000/v1/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

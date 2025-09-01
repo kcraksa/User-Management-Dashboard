@@ -10,8 +10,9 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { getAuthPayload } from '@/lib/auth';
 
 const { Header, Sider, Content } = Layout;
 
@@ -20,6 +21,78 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+
+  const [dynamicMenuChildren, setDynamicMenuChildren] = useState<any[] | null>(
+    null,
+  );
+
+  useEffect(() => {
+    // read modules from cookie-based auth payload
+    const payload = getAuthPayload();
+    const moduleAccess = payload?.user?.module_access ?? [];
+
+    // map to module objects (dedupe by pk_module_id)
+    const modules = moduleAccess
+      .map((ma: any) => ma.module)
+      .filter(Boolean)
+      .reduce(
+        (acc: Record<number, any>, m: any) => {
+          acc[m.pk_module_id] = m;
+          return acc;
+        },
+        {} as Record<number, any>,
+      );
+
+    const moduleArray = Object.values(modules) as any[];
+
+    if (moduleArray.length === 0) {
+      setDynamicMenuChildren(null);
+      return;
+    }
+
+    // build parent -> children map
+    const byParent: Record<string, any[]> = {};
+    for (const m of moduleArray) {
+      // normalize parent key as string; treat null/undefined as 'root'
+      const parentKey =
+        m.fk_parent_id == null ? 'root' : String(m.fk_parent_id);
+      if (!byParent[parentKey]) byParent[parentKey] = [];
+      byParent[parentKey].push(m);
+    }
+
+    // build children entries for Master menu (top-level parents)
+    const topLevel = byParent['root'] || [];
+
+    const childrenItems = topLevel.map((m: any) => {
+      const childNodes = (byParent[String(m.pk_module_id)] || []).map(
+        (c: any) => ({
+          key: `mod_${c.pk_module_id}`,
+          icon: <TableOutlined />,
+          label: c.name,
+          onClick: () => router.push(c.url_view || c.url || '/'),
+        }),
+      );
+
+      // If there are children, render submenu item with children; otherwise direct link
+      if (childNodes.length > 0) {
+        return {
+          key: `mod_${m.pk_module_id}`,
+          icon: <TableOutlined />,
+          label: m.name,
+          children: childNodes,
+        };
+      }
+
+      return {
+        key: `mod_${m.pk_module_id}`,
+        icon: <TableOutlined />,
+        label: m.name,
+        onClick: () => router.push(m.url_view || m.url || '/'),
+      };
+    });
+
+    setDynamicMenuChildren(childrenItems);
+  }, [router]);
 
   const handleLogout = () => {
     logout();
@@ -120,7 +193,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               key: 'master',
               icon: <TableOutlined />,
               label: 'Master',
-              children: [
+              children: dynamicMenuChildren ?? [
                 {
                   key: 'master_documents',
                   icon: <TableOutlined />,

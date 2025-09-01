@@ -1,13 +1,19 @@
 import axios from 'axios';
-import { getSession } from 'next-auth/react';
+import { getAuthPayload } from '@/lib/auth';
 
 const instance = axios.create();
 
-// request interceptor to attach token from session
+// set default auth header from cookie if available
+const auth = getAuthPayload();
+if (auth && auth.token) {
+  instance.defaults.headers.common['Authorization'] = `Bearer ${auth.token}`;
+}
+
+// request interceptor to attach token from cookie-based auth
 instance.interceptors.request.use(async (config) => {
   try {
-    const session = await getSession();
-    const token = (session as any)?.accessToken || null;
+    const payload = getAuthPayload();
+    const token = payload?.token || null;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
