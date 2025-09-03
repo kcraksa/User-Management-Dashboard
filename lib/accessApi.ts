@@ -1,9 +1,10 @@
 import axios from './axios'
-import { AccessItem, AccessCreatePayload } from '@/types/access'
+import { AccessCreatePayload } from '@/types/access'
 
 export async function listAccess(params?: any){
   const res = await axios.get(process.env.NEXT_PUBLIC_API_SERVICE_USER + '/v1/module-to-role', { params })
-  return res.data.data || res.data
+  const data = res.data.data?.data || res.data;
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getAccess(id:number){

@@ -1,9 +1,10 @@
 import axios from './axios'
-import { MenuItem, MenuCreatePayload } from '@/types/menu'
+import { MenuCreatePayload } from '@/types/menu'
 
 export async function listMenus(params?: any){
   const res = await axios.get(process.env.NEXT_PUBLIC_API_SERVICE_USER + '/v1/modules', { params })
-  return res.data.data || res.data
+  const data = res.data?.data?.data || res.data;
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getMenu(id:number){

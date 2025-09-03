@@ -1,5 +1,5 @@
 export type AppItem = {
-  pk_app_id: number;
+  pk_apps_id: number;
   name: string;
   key: string;
   description?: string | null;

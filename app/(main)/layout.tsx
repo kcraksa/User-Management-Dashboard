@@ -94,10 +94,43 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setDynamicMenuChildren(childrenItems);
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = React.useCallback(() => {
     logout();
     router.push('/login');
-  };
+  }, [logout, router]);
+
+  // build final menu items: static entries + dynamic modules
+  const menuItems = React.useMemo(() => {
+    const base: any[] = [
+      {
+        key: 'dashboard',
+        icon: <PieChartOutlined />,
+        label: 'Dashboard',
+        onClick: () => router.push('/dashboard'),
+      },
+    ];
+
+    if (dynamicMenuChildren && dynamicMenuChildren.length > 0) {
+      base.push(...dynamicMenuChildren);
+    }
+
+    base.push(
+      {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: 'Profile',
+        onClick: () => router.push('/profile'),
+      },
+      {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: 'Logout',
+        onClick: handleLogout,
+      },
+    );
+
+    return base;
+  }, [dynamicMenuChildren, router, handleLogout]);
 
   const profileMenu = (
     <Menu
@@ -182,38 +215,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               ['--ant-menu-submenu-bg' as any]: 'transparent',
             } as React.CSSProperties
           }
-          items={[
-            {
-              key: 'dashboard',
-              icon: <PieChartOutlined />,
-              label: 'Dashboard',
-              onClick: () => router.push('/dashboard'),
-            },
-            {
-              key: 'master',
-              icon: <TableOutlined />,
-              label: 'Master',
-              children: dynamicMenuChildren ?? [
-                {
-                  key: 'master_documents',
-                  icon: <TableOutlined />,
-                  label: 'Documents',
-                  onClick: () => router.push('/master/documents'),
-                },
-              ],
-            },
-            {
-              key: 'profile',
-              icon: <UserOutlined />,
-              label: 'Profile',
-              onClick: () => router.push('/profile'),
-            },
-            {
-              key: 'logout',
-              icon: <LogoutOutlined />,
-              label: <span onClick={handleLogout}>Logout</span>,
-            },
-          ]}
+          items={menuItems}
         />
       </Sider>
       <Layout>
@@ -235,7 +237,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               style={{ fontSize: 20 }}
             />
             <Typography.Title level={3} style={{ margin: 0, color: '#1976D2' }}>
-              Document Management System Dashboard
+              Access Management System Dashboard
             </Typography.Title>
           </div>
           <Dropdown

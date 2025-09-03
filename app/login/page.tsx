@@ -99,7 +99,7 @@ export default function LoginPage() {
             />
           </div>
           <Title level={3} className={styles['login-title']}>
-            Documents Management System
+            Accesss Management System
           </Title>
           <Text className={styles['login-subtitle']}>
             Enterprise Backoffice

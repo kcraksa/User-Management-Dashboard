@@ -1,107 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  Space,
-  message,
-} from 'antd';
-import {
-  listMenus,
-  createMenu,
-  updateMenu,
-  deleteMenu,
-  getMenu,
-} from '@/lib/menuApi';
+import { useRouter, usePathname } from 'next/navigation';
+import { Button, message, Select, Row, Col } from 'antd';
 import GenericCrudTable from '@/components/GenericCrudTable';
-import { MenuItem, MenuCreatePayload } from '@/types/menu';
+import GenericListLayout from '@/components/GenericListLayout';
+import { listMenus, deleteMenu } from '@/lib/menuApi';
+import { MenuItem } from '@/types/menu';
 import { getModuleAccess } from '@/lib/auth';
+import { preload } from 'swr';
+import { useEffect } from 'react';
 
 export default function MenuManagementPage() {
-  const [data, setData] = useState<MenuItem[]>([]);
-  // loading handled inside GenericCrudTable
-  const [visible, setVisible] = useState(false);
-  const [editing, setEditing] = useState<MenuItem | null>(null);
-  const [isViewing, setIsViewing] = useState(false);
-  const [permissions, setPermissions] = useState<any>({});
-  const [form] = Form.useForm<MenuCreatePayload>();
-
-  const fetchData = async () => {
-    try {
-      const list = await listMenus();
-      setData(list?.data ?? list);
-    } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Failed to fetch');
-    }
-  };
-
-  const fetchPermissions = async () => {
-    try {
-      // backend expects fk_module_id; for menu management module id might be null -> fetch all permissions
-      const access = getModuleAccess({ path: window.location.pathname });
-      setPermissions(access);
-    } catch (err) {
-      // ignore
-    }
-  };
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    fetchData();
-    fetchPermissions();
+    preload(['listMenus'], listMenus);
   }, []);
 
-  const openCreate = () => {
-    const access = getModuleAccess({ path: window.location.pathname });
-    if (!access?.is_add) {
-      message.error('No permission to add');
-      return;
-    }
-    setEditing(null);
-    setIsViewing(false);
-    form.resetFields();
-    setVisible(true);
-  };
-
-  const openEdit = (row: MenuItem) => {
-    setEditing(row);
-    setIsViewing(false);
-    form.setFieldsValue(row);
-    setVisible(true);
-  };
-
-  const openDetail = async (id: number) => {
-    try {
-      const res = await getMenu(id);
-      const itm = res?.data ?? res;
-      setEditing(itm);
-      setIsViewing(true);
-      form.setFieldsValue(itm);
-      setVisible(true);
-    } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Failed to load detail');
-    }
-  };
-
-  const onFinish = async (vals: MenuCreatePayload) => {
-    try {
-      if (editing) {
-        await updateMenu(editing.pk_module_id, vals);
-        message.success('Updated');
-      } else {
-        await createMenu(vals);
-        message.success('Created');
-      }
-      setVisible(false);
-      fetchData();
-    } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Failed to save');
-    }
-  };
+  // navigation handlers: use route pages instead of modal
+  const goToAdd = () => router.push('/settings/menu-management/add');
+  const goToEdit = (id: number) =>
+    router.push(`/settings/menu-management/edit/${id}`);
+  const goToDetail = (id: number) =>
+    router.push(`/settings/menu-management/detail/${id}`);
 
   const columns = [
     { title: 'Name', dataIndex: 'name', key: 'name', width: 250 },
@@ -139,110 +61,57 @@ export default function MenuManagementPage() {
   };
 
   return (
-    <main className="container">
-      <div
-        className="header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h2>Menu Management</h2>
-        {getModuleAccess({ path: window.location.pathname })?.is_add && (
-          <Button type="primary" onClick={openCreate}>
-            Create Menu
-          </Button>
-        )}
-      </div>
+    <GenericListLayout
+      title="Menu Management"
+      left={
+        <div>
+          <Row gutter={[12, 12]}>
+            <Col span={24}>
+              <label style={{ fontWeight: 600 }}>Status</label>
+              <Select placeholder="Select status" style={{ width: '100%' }} />
+            </Col>
 
-      <div className="card">
+            <Col span={24}>
+              <label style={{ fontWeight: 600 }}>Other Component</label>
+              <Select placeholder="Select" style={{ width: '100%' }} />
+            </Col>
+
+            <Col
+              span={24}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginTop: 8,
+              }}
+            >
+              <Button type="primary">Search</Button>
+              <Button
+                onClick={() => {
+                  // basic export placeholder: re-use current list fetch and trigger download later
+                  // implement server-side export or CSV generation as needed
+                  message.info('Export triggered');
+                }}
+              >
+                Export
+              </Button>
+            </Col>
+          </Row>
+        </div>
+      }
+      right={
         <GenericCrudTable
           columns={columns}
           api={api}
-          permissions={permissions}
-          onView={(id: number) => openDetail(id)}
-          onEdit={(row: MenuItem) => openEdit(row)}
+          permissions={(getModuleAccess({ path: pathname }) || {}) as any}
+          onView={(id: number) => goToDetail(id)}
+          onEdit={(row: MenuItem) => goToEdit(row.pk_module_id)}
           rowKey={'pk_module_id'}
           pageSize={15}
-          refreshKey={data?.length}
         />
-      </div>
-
-      <Modal
-        open={visible}
-        title={
-          isViewing
-            ? `Detail: ${editing?.name ?? ''}`
-            : editing
-              ? 'Edit Menu'
-              : 'Create Menu'
-        }
-        onCancel={() => setVisible(false)}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{ active: true }}
-        >
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="description" label="Description">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_view" label="URL View">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_create" label="URL Create">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_detail" label="URL Detail">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_update" label="URL Update">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_delete" label="URL Delete">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_approval" label="URL Approval">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="url_activation" label="URL Activation">
-            <Input disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="parent_id" label="Parent">
-            <Select disabled={isViewing} allowClear placeholder="Select parent">
-              {data?.map((d) => (
-                <Select.Option key={d.pk_module_id} value={d.pk_module_id}>
-                  {d.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="ordering" label="Ordering">
-            <Input type="number" disabled={isViewing} />
-          </Form.Item>
-          <Form.Item name="active" label="Active" valuePropName="checked">
-            <Switch disabled={isViewing} />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              {!isViewing && (
-                <Button htmlType="submit" type="primary">
-                  Save
-                </Button>
-              )}
-              <Button onClick={() => setVisible(false)}>
-                {isViewing ? 'Close' : 'Cancel'}
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </main>
+      }
+      onAdd={getModuleAccess({ path: pathname })?.is_add ? goToAdd : undefined}
+      addLabel="Create Menu"
+    />
   );
 }

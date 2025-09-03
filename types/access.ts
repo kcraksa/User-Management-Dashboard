@@ -1,5 +1,5 @@
 export type AccessItem = {
-  pk_access_id: number;
+  pk_modulerole_id: number;
   fk_module_id: number;
   fk_role_id: number;
   is_view?: boolean;

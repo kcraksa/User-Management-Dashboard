@@ -17,6 +17,7 @@ const authOptions = {
             headers: {
               'Content-Type': 'application/json',
               Accept: 'application/json',
+              'X-APP-ID': process.env.NEXT_PUBLIC_APP_ID
             },
             body: JSON.stringify({ username: credentials.username, password: credentials.password }),
           });

@@ -67,14 +67,14 @@ export default function Dashboard() {
       <Divider />
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <Card
-          title="Document Management System Status"
+          title="Access Management System Status"
           style={{ flex: 1, minWidth: 320, maxWidth: 400 }}
           bodyStyle={{ padding: 16 }}
         >
           <Bar {...chartConfig} />
         </Card>
         <Card
-          title="Document Management System Table"
+          title="Access Management System Table"
           style={{ flex: 2, minWidth: 400 }}
           bodyStyle={{ padding: 16 }}
         >

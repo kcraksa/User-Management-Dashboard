@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Table, Input, Space, Button, Modal, message } from 'antd';
+import { Table, Space, Button, Modal, message, Input } from 'antd';
 import { ColumnsType } from 'antd/es/table';
+import useSWR, { mutate } from 'swr';
 
 export type RolePermissions = {
   is_view?: boolean;
@@ -27,7 +28,6 @@ type Props<T> = {
   onEdit?: Function;
   rowKey?: string | Function;
   pageSize?: number;
-  searchFields?: string[];
   refreshKey?: any;
 };
 
@@ -39,55 +39,52 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
   onEdit,
   rowKey = 'id',
   pageSize = 15,
-  searchFields = [],
   refreshKey,
 }: Props<T>) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState<number | undefined>(undefined);
-
-  const fetch = async () => {
-    setLoading(true);
-    try {
-      const params: any = { page, per_page: pageSize };
-      if (q) params.q = q;
-      const res = await api.list(params);
-      // handle both paginated and array
-      const list = res?.data ?? res;
-      if (list?.data && Array.isArray(list.data)) {
-        setData(list.data);
-        setTotal(list.total ?? (list.per_page ? list.total : undefined));
-      } else if (Array.isArray(list)) {
-        setData(list);
-        setTotal(list.length);
-      } else {
-        setData(list ? [list] : []);
-      }
-    } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
 
   useEffect(() => {
-    fetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, q, refreshKey]);
+    const timer = setTimeout(() => {
+      setDebouncedQ(q);
+      setPage(1); // reset to page 1 on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [q]);
 
-  const handleSearch = (val: string) => {
-    setQ(val);
-    setPage(1);
-  };
+  const {
+    data: res,
+    error,
+    isLoading,
+  } = useSWR(
+    ['list', api.list.name, page, pageSize, debouncedQ, refreshKey],
+    () => api.list({ page, per_page: pageSize, q: debouncedQ }),
+  );
+
+  const list = res?.data ?? res;
+  const data =
+    list?.data && Array.isArray(list.data)
+      ? list.data
+      : Array.isArray(list)
+        ? list
+        : list
+          ? [list]
+          : [];
+  const total = list?.total ?? (list?.per_page ? list.total : data.length);
+
+  useEffect(() => {
+    if (error) {
+      message.error(error?.response?.data?.message || 'Failed to load data');
+    }
+  }, [error]);
 
   const handleDelete = async (id: number) => {
     if (!api.remove) return;
     try {
       await api.remove(id);
       message.success('Deleted');
-      fetch();
+      mutate(['list', api.list.name, page, pageSize, debouncedQ, refreshKey]);
     } catch (err: any) {
       message.error(err?.response?.data?.message || 'Failed to delete');
     }
@@ -150,10 +147,11 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
           justifyContent: 'space-between',
         }}
       >
-        <Input.Search
+        <Input
           placeholder="Search"
           allowClear
-          onSearch={handleSearch}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
           style={{ width: 300 }}
         />
       </Space>
@@ -161,7 +159,7 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
         dataSource={data}
         columns={finalColumns as ColumnsType<T>}
         rowKey={rowKey as any}
-        loading={loading}
+        loading={isLoading}
         pagination={{
           current: page,
           pageSize,

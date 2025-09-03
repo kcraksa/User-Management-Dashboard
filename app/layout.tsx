@@ -1,12 +1,9 @@
 import '@styles/globals.css';
-import { ConfigProvider } from 'antd';
-import theme from '@/theme/ant-theme-config';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import NextAuthProvider from './providers/NextAuthProvider';
+import ClientProviders from './ClientProviders';
 
 export const metadata = {
-  title: 'Gunanusa - Document Management System',
-  description: 'Document Management System by Gunanusa',
+  title: 'Gunanusa - Access Management System',
+  description: 'Access Management System by Gunanusa',
 };
 
 export default function RootLayout({
@@ -18,11 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AntdRegistry>
-          <ConfigProvider theme={theme}>
-            <NextAuthProvider>{children}</NextAuthProvider>
-          </ConfigProvider>
-        </AntdRegistry>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
