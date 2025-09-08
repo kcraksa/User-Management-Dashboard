@@ -3,7 +3,7 @@ import { MenuCreatePayload } from '@/types/menu'
 
 export async function listMenus(params?: any){
   const res = await axios.get(process.env.NEXT_PUBLIC_API_SERVICE_USER + '/v1/modules', { params })
-  const data = res.data?.data?.data || res.data;
+  const data = res.data?.data?.data || res.data?.data || res.data;
   return Array.isArray(data) ? data : [];
 }
 

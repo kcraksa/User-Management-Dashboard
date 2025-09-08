@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Table, Space, Button, Modal, message, Input } from 'antd';
+import { Table, Space, Button, Modal, message } from 'antd';
 import { ColumnsType } from 'antd/es/table';
 import useSWR, { mutate } from 'swr';
 
@@ -42,24 +42,13 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
   refreshKey,
 }: Props<T>) {
   const [page, setPage] = useState(1);
-  const [q, setQ] = useState('');
-  const [debouncedQ, setDebouncedQ] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQ(q);
-      setPage(1); // reset to page 1 on search
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [q]);
 
   const {
     data: res,
     error,
     isLoading,
-  } = useSWR(
-    ['list', api.list.name, page, pageSize, debouncedQ, refreshKey],
-    () => api.list({ page, per_page: pageSize, q: debouncedQ }),
+  } = useSWR(['list', api.list.name, page, pageSize, refreshKey], () =>
+    api.list({ page, per_page: pageSize }),
   );
 
   const list = res?.data ?? res;
@@ -84,7 +73,7 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
     try {
       await api.remove(id);
       message.success('Deleted');
-      mutate(['list', api.list.name, page, pageSize, debouncedQ, refreshKey]);
+      mutate(['list', api.list.name, page, pageSize, refreshKey]);
     } catch (err: any) {
       message.error(err?.response?.data?.message || 'Failed to delete');
     }
@@ -140,21 +129,6 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
 
   return (
     <div>
-      <Space
-        style={{
-          marginBottom: 12,
-          width: '100%',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Input
-          placeholder="Search"
-          allowClear
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          style={{ width: 300 }}
-        />
-      </Space>
       <Table<T>
         dataSource={data}
         columns={finalColumns as ColumnsType<T>}

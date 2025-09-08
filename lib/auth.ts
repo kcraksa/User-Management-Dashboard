@@ -74,45 +74,34 @@ export async function apiLogout() {
 
 /**
  * Cari module_access berdasarkan path atau module id.
- * - Jika path diberikan, cocokkan dengan beberapa field url di object module
- * - Jika moduleId diberikan, cocokkan fk_module_id
+ * - Jika path diberikan, cocokkan dengan url di object module
+ * - Jika moduleId diberikan, cocokkan pk_module_id
  */
 export function getModuleAccess({ path, moduleId }: { path?: string; moduleId?: number }) {
   const auth = getAuthPayload();
   const list: any[] = (auth && auth.user && auth.user.module_access) || [];
 
-  if (moduleId != null) {
-    return list.find((m) => Number(m.fk_module_id) === Number(moduleId)) ?? null;
+  function findModule(modules: any[], searchPath?: string, searchModuleId?: number): any | null {
+    for (const mod of modules) {
+      if (searchModuleId != null && Number(mod.pk_module_id) === Number(searchModuleId)) {
+        return mod;
+      }
+      if (searchPath && mod.url && (mod.url === searchPath || searchPath.startsWith(mod.url))) {
+        return mod;
+      }
+      if (mod.children) {
+        const found = findModule(mod.children, searchPath, searchModuleId);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
-  if (path) {
-    const p = path.split('?')[0];
-    for (const ma of list) {
-      const mod = ma.module || {};
-      const urls: (string | undefined)[] = [
-        mod.url,
-        mod.url_view,
-        mod.url_create,
-        mod.url_update,
-        mod.url_detail,
-        mod.url_delete,
-        mod.url_approval,
-        mod.url_activation,
-      ].filter(Boolean) as string[];
-
-      console.log(urls, p)
-
-      if (
-        urls.some((u) => {
-          try {
-            return u === p || p.startsWith(u);
-          } catch (e) {
-            return false;
-          }
-        })
-      ) {
-        return ma;
-      }
+  if (moduleId != null || path) {
+    const p = path ? path.split('?')[0] : undefined;
+    const mod = findModule(list, p, moduleId);
+    if (mod && mod.permissions && mod.permissions.length > 0) {
+      return mod.permissions[0];
     }
   }
 
