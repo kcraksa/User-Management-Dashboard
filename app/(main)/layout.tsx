@@ -31,66 +31,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const payload = getAuthPayload();
     const moduleAccess = payload?.user?.module_access ?? [];
 
-    // map to module objects (dedupe by pk_module_id)
-    const modules = moduleAccess
-      .map((ma: any) => ma.module)
-      .filter(Boolean)
-      .reduce(
-        (acc: Record<number, any>, m: any) => {
-          acc[m.pk_module_id] = m;
-          return acc;
-        },
-        {} as Record<number, any>,
-      );
-
-    const moduleArray = Object.values(modules) as any[];
-
-    if (moduleArray.length === 0) {
+    if (!Array.isArray(moduleAccess) || moduleAccess.length === 0) {
       setDynamicMenuChildren(null);
       return;
     }
 
-    // build parent -> children map
-    const byParent: Record<string, any[]> = {};
-    for (const m of moduleArray) {
-      // normalize parent key as string; treat null/undefined as 'root'
-      const parentKey =
-        m.fk_parent_id == null ? 'root' : String(m.fk_parent_id);
-      if (!byParent[parentKey]) byParent[parentKey] = [];
-      byParent[parentKey].push(m);
-    }
-
-    // build children entries for Master menu (top-level parents)
-    const topLevel = byParent['root'] || [];
-
-    const childrenItems = topLevel.map((m: any) => {
-      const childNodes = (byParent[String(m.pk_module_id)] || []).map(
-        (c: any) => ({
-          key: `mod_${c.pk_module_id}`,
+    // Function to build menu items from tree structure
+    const buildMenuItems = (modules: any[]): any[] => {
+      return modules.map((module: any) => {
+        const hasChildren = module.children && module.children.length > 0;
+        const menuItem: any = {
+          key: `mod_${module.pk_module_id}`,
           icon: <TableOutlined />,
-          label: c.name,
-          onClick: () => router.push(c.url_view || c.url || '/'),
-        }),
-      );
-
-      // If there are children, render submenu item with children; otherwise direct link
-      if (childNodes.length > 0) {
-        return {
-          key: `mod_${m.pk_module_id}`,
-          icon: <TableOutlined />,
-          label: m.name,
-          children: childNodes,
+          label: module.name,
+          style: { color: '#fff' },
         };
-      }
 
-      return {
-        key: `mod_${m.pk_module_id}`,
-        icon: <TableOutlined />,
-        label: m.name,
-        onClick: () => router.push(m.url_view || m.url || '/'),
-      };
-    });
+        if (hasChildren) {
+          menuItem.children = buildMenuItems(module.children);
+        } else {
+          menuItem.onClick = () => router.push(module.url || '/');
+        }
 
+        return menuItem;
+      });
+    };
+
+    const childrenItems = buildMenuItems(moduleAccess);
     setDynamicMenuChildren(childrenItems);
   }, [router]);
 
@@ -106,6 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         key: 'dashboard',
         icon: <PieChartOutlined />,
         label: 'Dashboard',
+        style: { color: '#fff' },
         onClick: () => router.push('/dashboard'),
       },
     ];
@@ -114,20 +82,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       base.push(...dynamicMenuChildren);
     }
 
-    base.push(
-      {
-        key: 'profile',
-        icon: <UserOutlined />,
-        label: 'Profile',
-        onClick: () => router.push('/profile'),
-      },
-      {
-        key: 'logout',
-        icon: <LogoutOutlined />,
-        label: 'Logout',
-        onClick: handleLogout,
-      },
-    );
+    base.push({
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Logout',
+      style: { color: '#fff' },
+      onClick: handleLogout,
+    });
 
     return base;
   }, [dynamicMenuChildren, router, handleLogout]);

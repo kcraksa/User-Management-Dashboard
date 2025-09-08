@@ -62,6 +62,16 @@ export function clearAuth() {
   }
 }
 
+export async function apiLogout() {
+  try {
+    const mod = await import('@/lib/axios');
+    const axios = mod.default;
+    await axios.post('/v1/auth/logout');
+  } catch (e) {
+    // ignore network errors - still clear client state
+  }
+}
+
 /**
  * Cari module_access berdasarkan path atau module id.
  * - Jika path diberikan, cocokkan dengan beberapa field url di object module

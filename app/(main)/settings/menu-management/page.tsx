@@ -42,8 +42,8 @@ export default function MenuManagementPage() {
     },
     {
       title: 'Parent',
-      dataIndex: 'parent_id',
-      key: 'parent_id',
+      dataIndex: 'fk_parent_id',
+      key: 'fk_parent_id',
       width: 200,
       render: (v: any) => v ?? '-',
     },

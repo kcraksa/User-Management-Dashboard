@@ -53,6 +53,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   logout: () => {
     if (typeof window !== 'undefined') {
+      // call server API to destroy token/session
+      try {
+        import('@/lib/auth').then((m) => m.apiLogout());
+      } catch (e) {
+        // ignore
+      }
+
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       try {

@@ -2,3 +2,49 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
+
+/* Override Ant Design Menu colors for dark theme */
+.ant-menu-dark .ant-menu-submenu-title,
+.ant-menu-dark .ant-menu-item {
+  color: #fff !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-title:hover,
+.ant-menu-dark .ant-menu-item:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-selected .ant-menu-submenu-title,
+.ant-menu-dark .ant-menu-item-selected {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Ensure nested inline submenu inherits transparent background and white text */
+.ant-menu-dark .ant-menu-submenu .ant-menu,
+.ant-menu-dark .ant-menu-submenu .ant-menu-inline,
+.ant-menu-dark .ant-menu-submenu .ant-menu-vertical,
+.ant-menu-dark .ant-menu-submenu .ant-menu-root {
+  background: transparent !important;
+}
+
+.ant-menu-dark .ant-menu-submenu .ant-menu-item,
+.ant-menu-dark .ant-menu-submenu .ant-menu-submenu-title,
+.ant-menu-dark .ant-menu-submenu .ant-menu-item a {
+  color: #fff !important;
+  background: transparent !important;
+}
+
+/* When submenu group has active background, make it semi-transparent to match gradient */
+.ant-menu-dark .ant-menu-submenu-popup .ant-menu-item,
+.ant-menu-dark .ant-menu-submenu .ant-menu-item:hover,
+.ant-menu-dark .ant-menu-item:hover {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* Fix selected state inside nested submenu */
+.ant-menu-dark .ant-menu-submenu .ant-menu-item-selected {
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+}

@@ -80,7 +80,7 @@ export default function MenuEditPage({ params }: { params: { id: string } }) {
             <Form.Item name="url_activation" label="URL Activation">
               <Input />
             </Form.Item>
-            <Form.Item name="parent_id" label="Parent">
+            <Form.Item name="fk_parent_id" label="Parent">
               <Select allowClear placeholder="Select parent">
                 {menus?.map((d) => (
                   <Select.Option key={d.pk_module_id} value={d.pk_module_id}>
