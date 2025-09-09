@@ -1,17 +1,16 @@
-import Cookies from 'js-cookie';
-
 export type LoginResponse = {
   user: any;
   token: string;
 };
 
-const COOKIE_KEY = 'gn_auth';
+const LOCAL_STORAGE_KEY = 'gn_auth';
 
 export function saveAuthPayload(payload: LoginResponse) {
+  if (typeof window === 'undefined') return;
   try {
-    Cookies.set(COOKIE_KEY, JSON.stringify(payload), { expires: 7, sameSite: 'Lax' });
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
   } catch (e) {
-    // ignore cookie serialization errors
+    // ignore localStorage errors
   }
 
   // set axios default header lazily to avoid circular imports
@@ -33,7 +32,7 @@ export function saveAuthPayload(payload: LoginResponse) {
 
 export function getAuthPayload(): LoginResponse | null {
   if (typeof window === 'undefined') return null;
-  const raw = Cookies.get(COOKIE_KEY);
+  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -43,8 +42,9 @@ export function getAuthPayload(): LoginResponse | null {
 }
 
 export function clearAuth() {
+  if (typeof window === 'undefined') return;
   try {
-    Cookies.remove(COOKIE_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
   } catch (e) {
     // ignore
   }
