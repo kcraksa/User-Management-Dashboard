@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Button, message, Select, Row, Col } from 'antd';
 import GenericCrudTable, {
   RolePermissions,
 } from '@/components/GenericCrudTable';
@@ -12,14 +11,32 @@ import { getModuleAccess } from '@/lib/auth';
 import { preload } from 'swr';
 import { listApps } from '@/lib/appApi';
 import { useEffect } from 'react';
+import SearchFilters from '@/components/SearchFilters';
+import { useState } from 'react';
 
 export default function RoleManagementPage() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
+
+  const [searchFilters, setSearchFilters] = useState<Record<string, string>>({
+    name: '',
+    description: '',
+  });
 
   useEffect(() => {
     preload(['listApps'], listApps);
   }, []);
+
+  const handleSearch = (filters: Record<string, string>) => {
+    setSearchFilters(filters);
+  };
+
+  const handleClear = () => {
+    setSearchFilters({
+      name: '',
+      description: '',
+    });
+  };
 
   // navigation handlers: use route pages instead of modal
   const goToAdd = () => router.push('/settings/role-management/add');
@@ -58,40 +75,14 @@ export default function RoleManagementPage() {
       <GenericListLayout
         title="Role Management"
         left={
-          <div>
-            <Row gutter={[12, 12]}>
-              <Col span={24}>
-                <label style={{ fontWeight: 600 }}>Status</label>
-                <Select placeholder="Select status" style={{ width: '100%' }} />
-              </Col>
-
-              <Col span={24}>
-                <label style={{ fontWeight: 600 }}>Other Component</label>
-                <Select placeholder="Select" style={{ width: '100%' }} />
-              </Col>
-
-              <Col
-                span={24}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  marginTop: 8,
-                }}
-              >
-                <Button type="primary">Search</Button>
-                <Button
-                  onClick={() => {
-                    // basic export placeholder: re-use current list fetch and trigger download later
-                    // implement server-side export or CSV generation as needed
-                    message.info('Export triggered');
-                  }}
-                >
-                  Export
-                </Button>
-              </Col>
-            </Row>
-          </div>
+          <SearchFilters
+            fields={[
+              { key: 'name', placeholder: 'Search by Name' },
+              { key: 'description', placeholder: 'Search by Description' },
+            ]}
+            onSearch={handleSearch}
+            onClear={handleClear}
+          />
         }
         right={
           <GenericCrudTable
@@ -104,6 +95,7 @@ export default function RoleManagementPage() {
             onEdit={(row: RoleItem) => goToEdit(row.pk_role_id)}
             rowKey={'pk_role_id'}
             pageSize={15}
+            refreshKey={searchFilters}
           />
         }
         onAdd={

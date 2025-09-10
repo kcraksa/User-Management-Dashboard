@@ -48,7 +48,7 @@ export default function GenericCrudTable<T extends { [key: string]: any }>({
     error,
     isLoading,
   } = useSWR(['list', api.list.name, page, pageSize, refreshKey], () =>
-    api.list({ page, per_page: pageSize }),
+    api.list({ page, per_page: pageSize, ...refreshKey }),
   );
 
   const list = res?.data ?? res;

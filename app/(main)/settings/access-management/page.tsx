@@ -1,20 +1,22 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Button, message, Select, Row, Col } from 'antd';
 import GenericCrudTable from '@/components/GenericCrudTable';
 import GenericListLayout from '@/components/GenericListLayout';
+import SearchFilters from '@/components/SearchFilters';
 import { listAccess, deleteAccess } from '@/lib/accessApi';
 import { AccessItem } from '@/types/access';
 import { listRoles } from '@/lib/roleApi';
 import { getModuleAccess } from '@/lib/auth';
 import useSWR, { preload } from 'swr';
 import { listMenus } from '@/lib/menuApi';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function AccessManagementPage() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
+
+  const [searchFilters, setSearchFilters] = useState({});
 
   const { data: roles } = useSWR(['listRoles'], listRoles);
 
@@ -28,6 +30,14 @@ export default function AccessManagementPage() {
     router.push(`/settings/access-management/edit/${id}`);
   const goToDetail = (id: number) =>
     router.push(`/settings/access-management/detail/${id}`);
+
+  const handleSearch = (filters: any) => {
+    setSearchFilters(filters);
+  };
+
+  const handleClear = () => {
+    setSearchFilters({});
+  };
 
   const columns = [
     {
@@ -93,44 +103,20 @@ export default function AccessManagementPage() {
 
   const api = { list: listAccess, remove: deleteAccess };
 
+  const searchFields = [
+    { key: 'module_name', placeholder: 'Module Name' },
+    { key: 'role_name', placeholder: 'Role Name' },
+  ];
+
   return (
     <GenericListLayout
       title="Access Management"
       left={
-        <div>
-          <Row gutter={[12, 12]}>
-            <Col span={24}>
-              <label style={{ fontWeight: 600 }}>Status</label>
-              <Select placeholder="Select status" style={{ width: '100%' }} />
-            </Col>
-
-            <Col span={24}>
-              <label style={{ fontWeight: 600 }}>Other Component</label>
-              <Select placeholder="Select" style={{ width: '100%' }} />
-            </Col>
-
-            <Col
-              span={24}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 8,
-                marginTop: 8,
-              }}
-            >
-              <Button type="primary">Search</Button>
-              <Button
-                onClick={() => {
-                  // basic export placeholder: re-use current list fetch and trigger download later
-                  // implement server-side export or CSV generation as needed
-                  message.info('Export triggered');
-                }}
-              >
-                Export
-              </Button>
-            </Col>
-          </Row>
-        </div>
+        <SearchFilters
+          fields={searchFields}
+          onSearch={handleSearch}
+          onClear={handleClear}
+        />
       }
       right={
         <GenericCrudTable
@@ -141,6 +127,7 @@ export default function AccessManagementPage() {
           onEdit={(row: AccessItem) => goToEdit(row.pk_modulerole_id)}
           rowKey={'pk_modulerole_id'}
           pageSize={20}
+          refreshKey={searchFilters}
         />
       }
       onAdd={getModuleAccess({ path: pathname })?.is_add ? goToAdd : undefined}

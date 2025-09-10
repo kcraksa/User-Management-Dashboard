@@ -27,7 +27,7 @@ export default function GenericFormLayout({
   saveLabel = 'Save',
   addLabel = 'Add',
 }: Props) {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
 
   // Check if current page is add or edit to hide Add button
   const isAddOrEditPage =

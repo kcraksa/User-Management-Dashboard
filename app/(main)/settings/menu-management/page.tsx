@@ -26,6 +26,7 @@ import {
 import { listMenus, deleteMenu, createMenu, updateMenu } from '@/lib/menuApi';
 import { getModuleAccess } from '@/lib/auth';
 import useSWR from 'swr';
+import SearchFilters from '@/components/SearchFilters';
 
 const { Title } = Typography;
 
@@ -46,17 +47,30 @@ interface MenuNode {
 }
 
 export default function MenuManagementPage() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const [form] = Form.useForm();
 
   const [selectedNode, setSelectedNode] = useState<MenuNode | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const { data: menuData, mutate } = useSWR(['listMenus'], listMenus);
+  const [searchFilters, setSearchFilters] = useState<Record<string, string>>(
+    {},
+  );
 
   // Get permissions for current page
   const permissions = getModuleAccess({ path: pathname });
+
+  const handleSearch = (filters: any) => {
+    setSearchFilters(filters);
+  };
+
+  const handleClear = () => {
+    setSearchFilters({});
+  };
+
+  const searchFields = [{ key: 'name', placeholder: 'Search Menu Name' }];
+
+  const { data: menuData, mutate } = useSWR(['listMenus'], listMenus);
 
   // Build tree structure from flat menu data
   const buildTree = (items: MenuNode[]): MenuNode[] => {
@@ -108,10 +122,18 @@ export default function MenuManagementPage() {
 
   // Safely get menu data array
   const getMenuDataArray = (): MenuNode[] => {
-    if (Array.isArray(menuData)) return menuData;
+    let items = Array.isArray(menuData) ? menuData : [];
     if ((menuData as any)?.data && Array.isArray((menuData as any).data))
-      return (menuData as any).data;
-    return [];
+      items = (menuData as any).data;
+
+    const searchName = searchFilters.name?.toLowerCase();
+    if (searchName) {
+      items = items.filter((item) =>
+        item.name.toLowerCase().includes(searchName),
+      );
+    }
+
+    return items;
   };
 
   const treeData = convertToTreeData(buildTree(getMenuDataArray()));
@@ -254,6 +276,12 @@ export default function MenuManagementPage() {
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>Menu Management</Title>
+
+      <SearchFilters
+        fields={searchFields}
+        onSearch={handleSearch}
+        onClear={handleClear}
+      />
 
       <Row gutter={24} style={{ height: 'calc(100vh - 200px)' }}>
         {/* Left Panel - Tree View */}
